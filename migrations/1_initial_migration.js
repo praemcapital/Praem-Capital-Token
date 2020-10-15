@@ -1,5 +1,7 @@
-const Migrations = artifacts.require("Migrations");
+const Praem = artifacts.require("Praem");
+
+const BN = require("bn.js");
 
 module.exports = function (deployer) {
-  deployer.deploy(Migrations);
+  deployer.deploy(Praem, new BN(1))
 };
