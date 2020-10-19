@@ -9,6 +9,7 @@ contract Praem is ERC20, Ownable
 {
     using SafeMath for uint256;
 
+    address[] public whiteListTransfer;
     uint256 public openTransferTime;
 
     constructor(uint256 _openTransferTime)
@@ -16,6 +17,7 @@ contract Praem is ERC20, Ownable
         ERC20("Praem", "PRM")
     {
         _setupDecimals(8);
+        whiteListTransfer.push(_msgSender());
         openTransferTime = 0;
         _mint(_msgSender(), 20 * (10 ** 6) * (10 ** uint256(decimals())));
         openTransferTime = _openTransferTime;
@@ -26,16 +28,45 @@ contract Praem is ERC20, Ownable
         openTransferTime = _openTransferTime;
     }
 
+    function addWhiteListTransfer(address newAddress) public onlyOwner
+    {
+        uint256 findInd = _find(whiteListTransfer, newAddress);
+        if (findInd >= whiteListTransfer.length)
+            whiteListTransfer.push(newAddress);
+    }
+
+    function removeWhiteListTransfer(address oldAddress) public onlyOwner
+    {
+        uint256 findInd = _find(whiteListTransfer, oldAddress);
+        uint256 len = whiteListTransfer.length;
+        if (findInd < len)
+        {
+            whiteListTransfer[findInd] = whiteListTransfer[len - 1];
+            whiteListTransfer.pop();
+        }
+    }
+
+    function whiteListTransferLen() public view returns(uint256)
+    {
+        return whiteListTransfer.length;
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner override {
+        removeWhiteListTransfer(owner());
+        addWhiteListTransfer(newOwner);
+        super.transferOwnership(newOwner);
+    }
+
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override
     {
         super._beforeTokenTransfer(from, to, amount);
-        if (from != address(this))
-            require(now >= openTransferTime ||
-                    (
-                        from == owner() ||
-                        to == owner()
-                    )
-                   );
+        if (from != owner())
+        {
+            require(now >= openTransferTime, "Praem: Contract does not open yet.");
+            uint256 len = whiteListTransfer.length;
+            require(_find(whiteListTransfer, from) != len ||
+                    _find(whiteListTransfer, to)   != len, "Praem: At least one address must be in white list.");
+        }
     }
 
     function _find(address[] memory list, address toFind) pure internal returns(uint256)

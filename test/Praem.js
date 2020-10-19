@@ -38,23 +38,108 @@ contract(
             expect(await Praem.totalSupply()).to.be.bignumber.that.equals(INITIAL_SUPPLY);
             expect(await Praem.balanceOf(praemOwner)).to.be.bignumber.that.equals(INITIAL_SUPPLY);
             expect(await Praem.openTransferTime()).to.be.bignumber.that.equals(timeDeploy.add(OPEN_TRANSFER_TIME));
+            expect(await Praem.owner()).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(1));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
         })
 
-        it("#1 Check transfers", async () => {
+        it("#1 Check white lists", async () => {
+            await Praem.addWhiteListTransfer(whitelist1, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(2));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+
+            await Praem.addWhiteListTransfer(whitelist2, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(3));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+            expect(await Praem.whiteListTransfer(2)).to.be.equals(whitelist2);
+
+            await Praem.addWhiteListTransfer(whitelist3, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(4));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+            expect(await Praem.whiteListTransfer(2)).to.be.equals(whitelist2);
+            expect(await Praem.whiteListTransfer(3)).to.be.equals(whitelist3);
+
+            await Praem.removeWhiteListTransfer(whitelist2, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(3));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+            expect(await Praem.whiteListTransfer(2)).to.be.equals(whitelist3);
+
+            await Praem.removeWhiteListTransfer(whitelist3, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(2));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+
+            await Praem.removeWhiteListTransfer(praemOwner, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(1));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(whitelist1);
+
+            await Praem.removeWhiteListTransfer(whitelist1, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(0));
+
+            await Praem.addWhiteListTransfer(praemOwner, {from: praemOwner});
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(1));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+
+            await Praem.transferOwnership(whitelist1, {from: praemOwner});
+            expect(await Praem.owner()).to.be.equals(whitelist1);
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(1));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(whitelist1);
+        })
+
+        it("#2 Check transfers", async () => {
             await Praem.transfer(customer, TOKEN_AMOUNT, {from: praemOwner});
+
+            await Praem.addWhiteListTransfer(whitelist1);
+            expect(await Praem.whiteListTransferLen()).to.be.bignumber.that.equals(new BN(2));
+            expect(await Praem.whiteListTransfer(0)).to.be.equals(praemOwner);
+            expect(await Praem.whiteListTransfer(1)).to.be.equals(whitelist1);
+            await Praem.transfer(whitelist1, TOKEN_AMOUNT, {from: praemOwner});
+
             expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
+            expect(await Praem.balanceOf(whitelist1)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
+
             await expectRevert(Praem.transfer(whitelist1, TOKEN_AMOUNT, {from: customer}),
             "revert");
-            await Praem.transfer(praemOwner, TOKEN_AMOUNT, {from: customer});
-            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(new BN(0));
+            await expectRevert(Praem.transfer(customer, TOKEN_AMOUNT, {from: whitelist1}),
+            "revert");
+            await expectRevert(Praem.transfer(praemOwner, TOKEN_AMOUNT, {from: customer}),
+            "revert");
+            await expectRevert(Praem.transfer(praemOwner, TOKEN_AMOUNT, {from: whitelist1}),
+            "revert");
+
+            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
+            expect(await Praem.balanceOf(whitelist1)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
 
             let timeNow = new BN((await web3.eth.getBlock("latest")).timestamp);
-
             await sleep(timeDeploy.add(OPEN_TRANSFER_TIME).sub(timeNow).sub(new BN(-1)).mul(new BN(1000)));
-            await Praem.transfer(customer, TOKEN_AMOUNT.mul(new BN(2)), {from: praemOwner});
+
+            await Praem.transfer(customer, TOKEN_AMOUNT, {from: praemOwner});
+            await Praem.transfer(whitelist1, TOKEN_AMOUNT, {from: praemOwner});
+            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(TOKEN_AMOUNT.mul(new BN(2)));
+            expect(await Praem.balanceOf(whitelist1)).to.be.bignumber.that.equals(TOKEN_AMOUNT.mul(new BN(2)));
+
+            await Praem.transfer(whitelist1, TOKEN_AMOUNT, {from: customer});
+            await Praem.transfer(customer, TOKEN_AMOUNT, {from: whitelist1});
+
+            await Praem.transfer(whitelist2, TOKEN_AMOUNT, {from: praemOwner});
+            await expectRevert(Praem.transfer(whitelist2, TOKEN_AMOUNT, {from: customer}),
+            "revert");
+            await expectRevert(Praem.transfer(customer, TOKEN_AMOUNT, {from: whitelist2}),
+            "revert");
+
+            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(TOKEN_AMOUNT.mul(new BN(2)));
+            expect(await Praem.balanceOf(whitelist1)).to.be.bignumber.that.equals(TOKEN_AMOUNT.mul(new BN(2)));
+            expect(await Praem.balanceOf(whitelist2)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
+
             await Praem.transfer(praemOwner, TOKEN_AMOUNT, {from: customer});
-            await Praem.transfer(whitelist2, TOKEN_AMOUNT, {from: customer});
-            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(new BN(0));
+            await Praem.transfer(praemOwner, TOKEN_AMOUNT, {from: whitelist1});
+
+            expect(await Praem.balanceOf(customer)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
+            expect(await Praem.balanceOf(whitelist1)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
             expect(await Praem.balanceOf(whitelist2)).to.be.bignumber.that.equals(TOKEN_AMOUNT);
         })
 
