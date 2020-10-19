@@ -61,11 +61,9 @@ contract Praem is ERC20, Ownable
     {
         super._beforeTokenTransfer(from, to, amount);
         uint256 len = whiteListTransfer.length;
-        if (_find(whiteListTransfer, from) == len)
-        {
-            require(now >= openTransferTime, "Praem: Contract does not open yet.");
-            require(_find(whiteListTransfer, to)   != len, "Praem: At least one address must be in white list.");
-        }
+        require(now >= openTransferTime ||
+                _find(whiteListTransfer, from) != len ||
+                _find(whiteListTransfer, to) != len, "Praem: Contract does not open yet.");
     }
 
     function _find(address[] memory list, address toFind) pure internal returns(uint256)
