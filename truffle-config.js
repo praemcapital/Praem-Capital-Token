@@ -76,6 +76,11 @@ module.exports = {
             timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
             skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
         },
+        mainnet: {
+            provider: () => new HDWalletProvider(process.env.mnemonic, `https://mainnet.infura.io/v3/d8c3a96fe7ad4c6cb75acdacfad74ff6`),
+            network_id: 1,
+            confirmations: 2,
+        },
         // Useful for private networks
         // private: {
         // provider: () => new HDWalletProvider(mnemonic, `https://network.io`),
