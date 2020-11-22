@@ -13,7 +13,7 @@ Clone the repository and install the required `npm` dependencies:
 
 ```
 $ git clone git@github.com:/praemcapital/Praem-Capital-Token.git
-$ cd Praem-token/
+$ cd Praem-Capital-Token/
 $ npm install
 ```
 
