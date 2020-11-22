@@ -12,7 +12,7 @@ This is an implementation of the [ERC-20](https://github.com/ethereum/EIPs/blob/
 Clone the repository and install the required `npm` dependencies:
 
 ```
-$ git clone git@github.com:Rock-n-Block/Praem-token.git
+$ git clone git@github.com:/praemcapital/Praem-Capital-Token.git
 $ cd Praem-token/
 $ npm install
 ```
